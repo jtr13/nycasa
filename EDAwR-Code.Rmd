@@ -1,0 +1,214 @@
+---
+title: "EDAwR-Code"
+format: html
+---
+
+```{r}
+library(tidyverse)
+dat <- read.csv("sample1000.csv")
+```
+
+## The data
+
+
+```{r}
+head(dat)
+dim(dat)
+```
+
+format: *cases* or *unbinned*
+
+(no count or frequency column)
+
+
+## Mother's age
+
+
+
+```{r}
+ggplot(dat, aes(mager)) +
+  geom_bar(color = "blue", fill = "cornflowerblue") +
+  xlab("Mother's age in years")
+```
+
+unbinned data --> `geom_bar()`
+
+## Father's age
+
+
+
+```{r}
+ggplot(dat, aes(fagecomb)) +
+  geom_bar(color = "blue", fill = "cornflowerblue") +
+  xlab("Fathers's age in years")
+```
+
+
+## Mother's age (father's age is missing)
+
+
+
+```{r}
+dat |> filter(fagecomb == 99) |> 
+ggplot(aes(mager)) +
+  geom_bar(color = "blue", fill = "cornflowerblue") +
+  xlab("Mother's age in years")
+```
+
+## Mother's age by father's age reporting
+
+
+
+Create a new variable to indicate missing status
+
+```{r}
+dat$father_age_missing <- ifelse(dat$fagecomb == 99, "missing", "reported")
+ggplot(dat, aes(mager)) +
+  geom_bar(color = "blue", fill = "cornflowerblue") +
+  facet_wrap(~father_age_missing)
+  
+```
+
+## Mother's age by father's age reporting
+
+
+
+```{r}
+dat |>
+  ggplot(aes(mager, fill = father_age_missing)) +
+  geom_bar(position = "fill") +
+  labs(x = "mother's age", y = "proportion") +
+  theme(legend.position = "bottom")
+```
+
+
+## Father's age vs. mother's age
+
+
+Bin data first. (Not practical to make a scatterplot with almost 4 million data points.)
+
+```{r}
+df_count <- dat |> group_by(mager, fagecomb) |> count()
+head(df_count)
+dim(df_count)
+```
+
+## Father's age vs. mother's age
+
+
+```{r}
+g <- df_count |> 
+  filter(fagecomb != 99) |> 
+  ggplot(aes(mager, fagecomb, fill = n)) + 
+  geom_tile() + 
+  scale_fill_viridis_c() +
+  coord_fixed()
+g
+```
+
+
+## Father's age vs. mother's age
+
+
+```{r}
+#| fig-width: 6
+#| fig-height: 6
+plotly::ggplotly(g)
+```
+
+## Most popular ages
+
+
+```{r}
+df_count |> group_by(mager) |> summarize(count = sum(n)) |> 
+  slice_max(count, n = 4)
+df_count |> group_by(fagecomb) |> summarize(count = sum(n)) |> 
+  slice_max(count, n = 4)
+```
+
+## Mother's education
+
+
+
+```{r}
+ggplot(dat, aes(meduc)) +
+  geom_bar()
+```
+
+::: {.pt7}
+(x-axis is incorrect)
+:::
+
+## Mother's education
+
+```{r}
+ggplot(dat, aes(factor(meduc))) + geom_bar()
+```
+
+## Mother's education
+
+```{r}
+dat$educ <- fct_recode(factor(dat$meduc), "8th" = "1", "9-12" = "2",
+                       "HS" = "3", "Some college" = "4", "Assoc"= "5",
+                       "Bachelor" = "6", "Master" = "7", "Doctor" = "8",
+                       "Unknown" = "9")
+ggplot(dat, aes(educ)) +
+  geom_bar() +
+  coord_flip()
+```
+
+
+## Mother's age and education
+
+
+
+Convert continuous variable to categorical:
+
+```{r}
+dat$m_age <- cut(dat$mager, breaks = seq(10, 50, 5))
+head(dat)
+```
+
+## Mother's age and education
+
+
+
+```{r}
+#| fig-width: 6
+ggplot(dat, aes(educ, fill = fct_rev(m_age))) +
+  geom_bar(position = "fill") +
+  coord_flip() +
+  scale_fill_brewer(direction = -1, breaks = levels(dat$m_age)) +
+  guides(fill=guide_legend(title="Mother's Age")) +
+  theme_bw(12) +
+  theme(legend.position = "bottom")
+```
+
+
+## Mother's age and education
+
+
+
+```{r}
+ggplot(dat, aes(educ)) +
+  geom_bar() +
+  coord_flip() +
+  facet_wrap(~m_age) +
+  scale_y_continuous(labels = ~.x/100000) +
+  ylab("Births (in 100,000s)") +
+  theme_bw(12)
+```
+
+## Mother's age and education
+
+
+```{r}
+ggplot(dat, aes(m_age)) +
+  geom_bar() +
+  coord_flip() +
+  facet_wrap(~educ) +
+  scale_y_continuous(labels = ~.x/100000) +
+  ylab("Births (in 100,000s)") +
+  theme_bw(12)
+```
+
